@@ -1,7 +1,10 @@
 # Check Reich lab data
 
+library(fuzzyjoin)
+
 file = "https://reichdata.hms.harvard.edu/pub/datasets/amh_repo/curated_releases/V42/V42.4/SHARE/public.dir/v42.4.1240K_HO.anno"
 
+# Read data and clean column names
 dat <- read.csv(file,
                 header = T,
                 sep = "\t",
@@ -11,13 +14,12 @@ cols = colnames(dat)
 colnames(dat) <- gsub("[.].*", "",cols)
 
 
-head(dat)
-
-
-# Cases where results are inaccurate
+# #1) Find cases where reported date range does not match the reported average date
+# Sometimes because BCE and CE get flipped
 
 dat_date_check <- dat %>%
   filter(Date != "..") %>%
+  mutate(Date = gsub(",", ";", Date)) %>%
   mutate(Average = as.numeric(as.character(Average))) %>%
   rename("AverageBP" = "Average") %>%
   mutate(Average_0Scale = ifelse(AverageBP >=1950, -1*(AverageBP-1950), 1950-AverageBP)) %>%
@@ -50,7 +52,106 @@ dat_date_check <- dat %>%
 # Save inconsitent results to csv
 dat_date_check %>%
   filter(Date_Average_isInconsistent == TRUE) %>%
-  rename("Average_Reported" = "AverageBP",
+  rename("AverageBP_Reported" = "AverageBP",
          "Date_Reported" = "Date") %>%
-  select(Instance, Publication, Group, Average_Reported, Average_0Scale, Date_Reported, Date2_Lower_0Scale, Date2_Upper_0Scale, Average_0Scale_Corrected) %>%
-  write.csv("~/Documents/projects/reich_data/inconsistent_dates.csv", quote = F, row.names = F)
+  select(Instance, Publication, Group, AverageBP_Reported, Average_0Scale, Date_Reported, Date2_Lower_0Scale, Date2_Upper_0Scale, Average_0Scale_Corrected) %>%
+  write.csv("~/Documents/projects/reich_data/inconsistent_dates.csv", 
+              quote = F, 
+              row.names = F)
+
+
+
+#### 2) Geographical coordinate check
+# Check cases where latitude and longitude of reported country
+# do not fall near sampling location
+
+# idea: could plot coordinates of each sample from a given country,
+# then visually inspect :(
+
+world_cities <- read.csv("~/Downloads/simplemaps_worldcities_basicv1.6/worldcities.csv",
+                         stringsAsFactors = F) %>%
+  select(country, lat, lng) %>%
+  group_by(country) %>%
+  summarize(CountryLong = mean(lng),
+            CountryLat = mean(lat))
+
+library(stringr)
+library(ggrepel)
+library(ggplot2)
+require("cowplot")
+library(viridis)
+library(tidyr)
+require('gtools')
+library(grid)
+library(gridExtra)
+library(knitr)
+library(tibble)
+library(plyr)
+library(plotly)
+
+find_hull <- function(df) df[chull(df$Long, df$Lat), ]
+
+
+dat_coords <- dat_date_check %>%
+  filter(Long != "..",
+         Lat != "..") %>%
+  mutate(Long = round(as.numeric(Long), digits = 1),
+         Lat = round(as.numeric(Lat), digits = 1)) %>%
+  filter(Long > -20 & Long < 60 &
+         Lat > 30 & Lat < 70,
+         Average_0Scale_Corrected < 1900) #%>%
+  #group_by(Long, Lat, Country) %>%
+  #dplyr::summarize(n = n()) %>%
+  #ungroup() %>%
+  #fuzzy_left_join(world_cities, by = c("Country" = "country"),
+  #                match_fun = str_detect)
+
+hulls <- ddply(dat_coords %>%
+                 filter(Country != "Russia"),
+               "Country", find_hull) 
+
+hull_labels <- hulls %>%
+  group_by(Country) %>%
+  dplyr::summarize(Long = mean(Long), 
+            Lat = mean(Lat))
+
+p <- ggplot(data = dat_coords) +
+  geom_polygon(data = world %>%
+                 filter(long > -20 & long < 60 &
+                          lat > 30 & lat < 70), #%>%,
+               aes(x=long,y=lat,group=group),
+               color = "white", fill = "lightgray") +
+  geom_point(aes(x = Long, y = Lat,
+                 text = paste0("Sample: ", Instance, 
+                               "\nGroup: ",Group,
+                               #"\nDate: ", Date,
+                               "\nLocality: ", Locality)),
+             alpha = 0.5) +
+  
+  geom_polygon(data = hulls,
+               aes(x = Long, y = Lat, group = Country), 
+                    color = "black", alpha = 0.3,
+               fill = "goldenrod")+
+  guides(color = F) +
+  theme_bw()
+
+# Plotly to mouse over points!
+ggplotly(p)
+
+Sys.setenv("plotly_username"="antmarge")
+Sys.setenv("plotly_api_key"="t8mvjgr2AnFfmqkQ3mzY")
+
+chart_link = api_create(ggplotly(p), 
+                        username = "antmarge",
+                        filename = "reich_data_coords")
+
+
+
+
+#### 3) Locality check
+# Check cases where latitude and longitude of reported country
+# Example: Crypta Balbi outlier has Sardinia in Locality, but coordinates are correct 
+# How to do this....
+
+dat_date_check %>%
+  filter(str_detect(Locality, "Sardinia"))
