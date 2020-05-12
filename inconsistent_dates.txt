@@ -1,12 +1,12 @@
-Instance Publication Group Average_Reported Average_0Scale Date_Reported Date2_Lower_0Scale Date2_Upper_0Scale Average_0Scale_Corrected
-I4936_published OlaldeNature2018 Italy_Sicily_BellBeaker_published_lc 2200 -250 2500-1900 BCE [based on the Bell Beaker phase in Sicily, using the date range estimate justified in the supplemental materials of Olalde et al. Nature 555, 190-6 (2018), pages 28-29] -2500 -1900 -2200
-I6547 NarasimhanPattersonScience2019 Pakistan_IA_Barikot 200 1750 200 BCE - 100 CE -200 100 -50
-I12208 OlaldeScience2019 Iberia_LBA_Cogotas 3240 -1290 1368-1338 calBCE, 1322-1211 calBCE -1368 -1338 -1353
-I12209 OlaldeScience2019 Iberia_LBA_Cogotas 3240 -1290 1368-1338 calBCE, 1322-1211 calBCE -1368 -1338 -1353
-I12514 OlaldeScience2019 Iberia_Islamic 863 1087 1155-1020 calBCE (960¬±30 BP, Beta-459794) -1155 -1020 -1087.5
-I12516 OlaldeScience2019 Iberia_Islamic 948 1002 1030-975 calBCE (1030¬±30 BP, Beta-372984) -1030 -975 -1002.5
-scy192.SG KrzewinskaScienceAdvances2018 Moldova_Scythian.SG 1650 300 450-150 BCE [other dates from similar context] -450 -150 -300
-scy193.SG KrzewinskaScienceAdvances2018 Moldova_Scythian_o1.SG 1650 300 450-150 BCE [other dates from similar context] -450 -150 -300
-scy197.SG KrzewinskaScienceAdvances2018 Moldova_Scythian.SG 1650 300 450-150 BCE [other dates from similar context] -450 -150 -300
-MJ-19.SG JarveCurrentBiology2019 Ukraine_Chernyakhiv.SG 2346 -396 262-530 calCE (1655¬±30 BP, Poz-) 262 530 396
-scy006.WGC KrzewinskaScienceAdvances2018 Ukraine_Scythian.WGC 1650 300 450-150 BCE [other dates from similar context] -450 -150 -300
+Instance	Publication	Group	Average_Reported	Average_0Scale	Date_Reported	Date2_Lower_0Scale	Date2_Upper_0Scale	Average_0Scale_Corrected
+I4936_published	OlaldeNature2018	Italy_Sicily_BellBeaker_published_lc	2200	-250	2500-1900 BCE [based on the Bell Beaker phase in Sicily, using the date range estimate justified in the supplemental materials of Olalde et al. Nature 555, 190-6 (2018), pages 28-29]	-2500	-1900	-2200
+I6547	NarasimhanPattersonScience2019	Pakistan_IA_Barikot	200	1750	200 BCE - 100 CE	-200	100	-50
+I12208	OlaldeScience2019	Iberia_LBA_Cogotas	3240	-1290	1368-1338 calBCE, 1322-1211 calBCE	-1368	-1338	-1353
+I12209	OlaldeScience2019	Iberia_LBA_Cogotas	3240	-1290	1368-1338 calBCE, 1322-1211 calBCE	-1368	-1338	-1353
+I12514	OlaldeScience2019	Iberia_Islamic	863	1087	1155-1020 calBCE (960¬±30 BP, Beta-459794)	-1155	-1020	-1087.5
+I12516	OlaldeScience2019	Iberia_Islamic	948	1002	1030-975 calBCE (1030¬±30 BP, Beta-372984)	-1030	-975	-1002.5
+scy192.SG	KrzewinskaScienceAdvances2018	Moldova_Scythian.SG	1650	300	450-150 BCE [other dates from similar context]	-450	-150	-300
+scy193.SG	KrzewinskaScienceAdvances2018	Moldova_Scythian_o1.SG	1650	300	450-150 BCE [other dates from similar context]	-450	-150	-300
+scy197.SG	KrzewinskaScienceAdvances2018	Moldova_Scythian.SG	1650	300	450-150 BCE [other dates from similar context]	-450	-150	-300
+MJ-19.SG	JarveCurrentBiology2019	Ukraine_Chernyakhiv.SG	2346	-396	262-530 calCE (1655¬±30 BP, Poz-)	262	530	396
+scy006.WGC	KrzewinskaScienceAdvances2018	Ukraine_Scythian.WGC	1650	300	450-150 BCE [other dates from similar context]	-450	-150	-300
