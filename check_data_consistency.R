@@ -1,6 +1,21 @@
 # Check Reich lab data
+# ML Antonio
+# 2020.05.12
 
 library(fuzzyjoin)
+library(stringr)
+library(ggrepel)
+library(ggplot2)
+require("cowplot")
+library(viridis)
+library(tidyr)
+require('gtools')
+library(grid)
+library(gridExtra)
+library(knitr)
+library(tibble)
+library(plyr)
+library(plotly)
 
 file = "https://reichdata.hms.harvard.edu/pub/datasets/amh_repo/curated_releases/V42/V42.4/SHARE/public.dir/v42.4.1240K_HO.anno"
 
@@ -68,27 +83,7 @@ dat_date_check %>%
 # idea: could plot coordinates of each sample from a given country,
 # then visually inspect :(
 
-world_cities <- read.csv("~/Downloads/simplemaps_worldcities_basicv1.6/worldcities.csv",
-                         stringsAsFactors = F) %>%
-  select(country, lat, lng) %>%
-  group_by(country) %>%
-  summarize(CountryLong = mean(lng),
-            CountryLat = mean(lat))
-
-library(stringr)
-library(ggrepel)
-library(ggplot2)
-require("cowplot")
-library(viridis)
-library(tidyr)
-require('gtools')
-library(grid)
-library(gridExtra)
-library(knitr)
-library(tibble)
-library(plyr)
-library(plotly)
-
+# Function to find polygon hulls
 find_hull <- function(df) df[chull(df$Long, df$Lat), ]
 
 
@@ -96,29 +91,27 @@ dat_coords <- dat_date_check %>%
   filter(Long != "..",
          Lat != "..") %>%
   mutate(Long = round(as.numeric(Long), digits = 1),
-         Lat = round(as.numeric(Lat), digits = 1)) %>%
-  filter(Long > -20 & Long < 60 &
-         Lat > 30 & Lat < 70,
-         Average_0Scale_Corrected < 1900) #%>%
-  #group_by(Long, Lat, Country) %>%
-  #dplyr::summarize(n = n()) %>%
-  #ungroup() %>%
-  #fuzzy_left_join(world_cities, by = c("Country" = "country"),
-  #                match_fun = str_detect)
+         Lat = round(as.numeric(Lat), digits = 1)) #%>%
+  #filter(Long > -20 & Long < 60 &
+   #      Lat > 30 & Lat < 70)
 
+
+# Create hulls
 hulls <- ddply(dat_coords %>%
                  filter(Country != "Russia"),
                "Country", find_hull) 
 
+# Label hulls - don't need this for plotly
 hull_labels <- hulls %>%
   group_by(Country) %>%
   dplyr::summarize(Long = mean(Long), 
             Lat = mean(Lat))
 
+# Plot polygons and points on map
 p <- ggplot(data = dat_coords) +
-  geom_polygon(data = world %>%
-                 filter(long > -20 & long < 60 &
-                          lat > 30 & lat < 70), #%>%,
+  geom_polygon(data = world, #%>%
+                 #filter(long > -20 & long < 60 &
+                 #         lat > 30 & lat < 70), #%>%,
                aes(x=long,y=lat,group=group),
                color = "white", fill = "lightgray") +
   geom_point(aes(x = Long, y = Lat,
@@ -133,20 +126,15 @@ p <- ggplot(data = dat_coords) +
                     color = "black", alpha = 0.3,
                fill = "goldenrod")+
   guides(color = F) +
-  theme_bw()
+  theme_bw() +
+  ggtitle("Reich Ancient DNA Data: Reported coordinates of samples grouped by reported country")
 
 # Plotly to mouse over points!
 ggplotly(p)
 
-Sys.setenv("plotly_username"="antmarge")
-Sys.setenv("plotly_api_key"="t8mvjgr2AnFfmqkQ3mzY")
-
-chart_link = api_create(ggplotly(p), 
-                        username = "antmarge",
-                        filename = "reich_data_coords")
-
-
-
+# Save as HTML
+saveWidget(ggplotly(p), "~/Documents/projects/reich_data/coord_check_plotly.html", 
+           selfcontained = T)
 
 #### 3) Locality check
 # Check cases where latitude and longitude of reported country
