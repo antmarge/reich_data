@@ -1,0 +1,182 @@
+---
+title: "check_data"
+author: "Margaret Antonio"
+date: "5/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+# Note: need X11 installed for mac
+
+library(stringr)
+library(ggrepel)
+library(ggplot2)
+require("cowplot")
+library(viridis)
+library(tidyr)
+require('gtools')
+library(grid)
+library(gridExtra)
+library(knitr)
+library(tibble)
+library(plyr)
+library(Cairo)
+library(plotly)
+library(fuzzyjoin)
+
+```
+
+## Read in reich annotation data directly from website
+
+
+```{r anno}
+# Check Reich lab data
+
+
+file = "https://reichdata.hms.harvard.edu/pub/datasets/amh_repo/curated_releases/V42/V42.4/SHARE/public.dir/v42.4.1240K_HO.anno"
+
+# Read data and clean column names
+dat <- read.csv(file,
+                header = T,
+                sep = "\t",
+                stringsAsFactors = F)
+
+cols = colnames(dat)
+colnames(dat) <- gsub("[.].*", "",cols)
+
+```
+
+
+### 1) Find cases where reported date range does not match the reported average date
+Sometimes because BCE and CE get flipped
+
+
+```{r date_check}
+
+dat_date_check <- dat %>%
+  filter(Date != "..") %>%
+  mutate(Date = gsub(",", ";", Date)) %>%
+  mutate(Average = as.numeric(as.character(Average))) %>%
+  rename("AverageBP" = "Average") %>%
+  mutate(Average_0Scale = ifelse(AverageBP >=1950, -1*(AverageBP-1950), 1950-AverageBP)) %>%
+  mutate(Date_isCalibrated = ifelse(str_detect(Date, "cal"), TRUE, FALSE)) %>%
+  #select(Date) %>%
+  mutate(Date2 = str_replace(Date," \\(.*\\)",""),
+         Date2 = gsub("cal", "", Date2),
+         Date2 = gsub(" ", "", Date2)) %>%
+  separate(Date2, into = c("Date2_Lower", "Date2_Upper"), "-") %>%
+  # Get date distinction for upper and lower dates
+  mutate(Date2_Upper_Time = ifelse(str_detect(Date2_Upper,"BCE"), "BCE", ifelse(str_detect(Date2_Upper,"CE"), "CE", "UNKNOWN")),
+         Date2_Lower_Time = ifelse(str_detect(Date2_Lower,"BCE"), "BCE", ifelse(str_detect(Date2_Lower,"CE"), "CE", Date2_Upper_Time))) %>%
+  # Strip dates of BCE/CE
+  mutate(Date2_Lower = as.numeric(gsub("[B|C].*", "", Date2_Lower)),
+         Date2_Upper = as.numeric(gsub("[B|C].*", "", Date2_Upper))) %>%
+  # Put Dates on 0 scale
+  mutate(Date2_Lower_0Scale = ifelse(Date2_Lower_Time == "BCE", -1 * Date2_Lower, ifelse(Date2_Lower_Time == "CE", Date2_Lower, NA)),
+         Date2_Upper_0Scale = ifelse(Date2_Upper_Time == "BCE", -Date2_Upper, ifelse(Date2_Upper_Time == "CE", Date2_Upper, NA))) %>%
+  # If both BCE, make sure the older date is Date_Lower. Make temp variable for swap
+  mutate(Date_TEMP = NA) %>%
+  mutate(Date_TEMP = ifelse(Date2_Lower_Time == "BCE" & Date2_Upper_Time == "BCE" & Date2_Upper_0Scale < Date2_Lower_0Scale, Date2_Upper_0Scale, NA),
+         Date2_Upper_0Scale = ifelse(!is.na(Date_TEMP), Date2_Lower_0Scale, Date2_Upper_0Scale),
+         Date2_Lower_0Scale = ifelse(!is.na(Date_TEMP), Date_TEMP, Date2_Lower_0Scale),
+         Average_0Scale_Corrected = (Date2_Upper_0Scale + Date2_Lower_0Scale) / 2
+  ) %>%
+  select(-Date_TEMP) %>%
+  mutate(Date_Average_isInconsistent = ifelse(Average_0Scale > Date2_Upper_0Scale | Average_0Scale < Date2_Lower_0Scale, TRUE, FALSE))
+
+
+# Save inconsitent results to csv
+dat_date_check %>%
+  filter(Date_Average_isInconsistent == TRUE) %>%
+  rename("AverageBP_Reported" = "AverageBP",
+         "Date_Reported" = "Date") %>%
+  select(Instance, Publication, Group, AverageBP_Reported, Average_0Scale, Date_Reported, Date2_Lower_0Scale, Date2_Upper_0Scale, Average_0Scale_Corrected) %>%
+  write.csv("~/Documents/projects/reich_data/inconsistent_dates.csv", 
+            quote = F, 
+            row.names = F)
+
+```
+
+### 2) Geographical coordinate check
+Check cases where latitude and longitude of reported country do not fall near sampling location
+
+idea: could plot coordinates of each sample from a given country, then visually inspect :(
+
+```{r coord_check}
+
+# World map
+world = map_data("world")
+
+# Function to get the hulls of polygons 
+find_hull <- function(df) df[chull(df$Long, df$Lat), ]
+
+
+# Use the previous data frame
+dat_coords <- dat_date_check %>%
+  filter(Long != "..",
+         Lat != "..") %>%
+  mutate(Long = round(as.numeric(Long), digits = 1),
+         Lat = round(as.numeric(Lat), digits = 1)) %>%
+  filter(Long > -20 & Long < 60 &
+         Lat > 30 & Lat < 70) 
+ 
+
+# Get hulls. Exclude Russia because HUGE
+hulls <- ddply(dat_coords %>%
+                 filter(Country != "Russia"),
+               "Country", find_hull) 
+
+# Labels of hulls. Not needed for plotly
+hull_labels <- hulls %>%
+  group_by(Country) %>%
+  dplyr::summarize(Long = mean(Long), 
+            Lat = mean(Lat))
+
+# Plot with ggplot on map
+p <- ggplot(data = dat_coords) +
+  geom_polygon(data = world %>%
+                 filter(long > -20 & long < 60 &
+                          lat > 30 & lat < 70), #%>%,
+               aes(x=long,y=lat,group=group),
+               color = "white", fill = "lightgray") +
+  geom_point(aes(x = Long, y = Lat,
+                 text = paste0("Sample: ", Instance, 
+                               "\nGroup: ",Group,
+                               #"\nDate: ", Date,
+                               "\nLocality: ", Locality)),
+             alpha = 0.5) +
+  geom_polygon(data = hulls,
+               aes(x = Long, y = Lat, group = Country), 
+               color = "black", alpha = 0.3,
+               fill = "goldenrod")+
+  guides(color = F) +
+  theme_bw()
+
+p
+
+# UNCOMMENT BELOW to use Plotly to mouse over points!
+#ggplotly(p)
+
+# Need paid subscription
+
+#chart_link = api_create(ggplotly(p), 
+#                        username = "antmarge",
+#                        filename = "reich_data_coords")
+
+```
+
+
+```{r locality_check}
+
+
+#### 3) Locality check
+# Check cases where latitude and longitude of reported country
+# Example: Crypta Balbi outlier has Sardinia in Locality, but coordinates are correct 
+# How to do this....
+
+dat_date_check %>%
+  filter(str_detect(Locality, "Sardinia"))
+
+```
+

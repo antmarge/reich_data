@@ -18,6 +18,7 @@ library(plyr)
 library(plotly)
 
 file = "https://reichdata.hms.harvard.edu/pub/datasets/amh_repo/curated_releases/V42/V42.4/SHARE/public.dir/v42.4.1240K_HO.anno"
+dir = "~/Documents/projects/reich_data/"
 
 # Read data and clean column names
 dat <- read.csv(file,
@@ -60,21 +61,31 @@ dat_date_check <- dat %>%
          Date2_Lower_0Scale = ifelse(!is.na(Date_TEMP), Date_TEMP, Date2_Lower_0Scale),
          Average_0Scale_Corrected = (Date2_Upper_0Scale + Date2_Lower_0Scale) / 2
   ) %>%
-  select(-Date_TEMP) %>%
-  mutate(Date_Average_isInconsistent = ifelse(Average_0Scale > Date2_Upper_0Scale | Average_0Scale < Date2_Lower_0Scale, TRUE, FALSE))
-
+  select(-Date_TEMP)
 
 # Save inconsitent results to csv
 dat_date_check %>%
-  filter(Date_Average_isInconsistent == TRUE) %>%
+  mutate(DATE_INCONSISTENT_REASON = ifelse(
+    abs(Average_0Scale_Corrected-Average_0Scale) > 1, "IN_DATE_RANGE_NOT_AVERAGE",
+    ifelse(Average_0Scale > Date2_Upper_0Scale | Average_0Scale < Date2_Lower_0Scale, "OUT_OF_DATE_RANGE", "NA")),
+    DATE_INCONSISTENT_REASON = ifelse(DATE_INCONSISTENT_REASON)) %>%
+  filter(!is.na(DATE_INCONSISTENT_REASON)) %>%
   rename("AverageBP_Reported" = "AverageBP",
          "Date_Reported" = "Date") %>%
-  select(Instance, Publication, Group, AverageBP_Reported, Average_0Scale, Date_Reported, Date2_Lower_0Scale, Date2_Upper_0Scale, Average_0Scale_Corrected) %>%
-  write.csv("~/Documents/projects/reich_data/inconsistent_dates.csv", 
+  select(Instance, Publication, Group, AverageBP_Reported, Average_0Scale, 
+         Date_Reported, Date2_Lower_0Scale, Date2_Upper_0Scale, Average_0Scale_Corrected,
+         DATE_INCONSISTENT_REASON) %>%
+  write.csv(paste0(dir,"date_inconsistencies.csv"), 
               quote = F, 
               row.names = F)
 
 
+dat_date_check %>%
+  mutate(Average_0Scale_Corrected = round(Average_0Scale_Corrected, digits = 0)) %>%
+  select(Instance, Publication,Group,Date,Average_0Scale, Average_0Scale_Corrected) %>%
+  write.csv(paste0(dir,"date_inconsistence_average.csv"),
+            quote = F,
+            row.names = F)
 
 #### 2) Geographical coordinate check
 # Check cases where latitude and longitude of reported country
@@ -133,7 +144,7 @@ p <- ggplot(data = dat_coords) +
 ggplotly(p)
 
 # Save as HTML
-saveWidget(ggplotly(p), "~/Documents/projects/reich_data/coord_check_plotly.html", 
+saveWidget(ggplotly(p), paste0(dir,"coord_check_plotly.html"), 
            selfcontained = T)
 
 #### 3) Locality check
@@ -141,5 +152,3 @@ saveWidget(ggplotly(p), "~/Documents/projects/reich_data/coord_check_plotly.html
 # Example: Crypta Balbi outlier has Sardinia in Locality, but coordinates are correct 
 # How to do this....
 
-dat_date_check %>%
-  filter(str_detect(Locality, "Sardinia"))
