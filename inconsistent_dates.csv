@@ -1,4 +1,4 @@
-Instance,Publication,Group,Average_Reported,Average_0Scale,Date_Reported,Date2_Lower_0Scale,Date2_Upper_0Scale,Average_0Scale_Corrected
+Instance,Publication,Group,AverageBP_Reported,Average_0Scale,Date_Reported,Date2_Lower_0Scale,Date2_Upper_0Scale,Average_0Scale_Corrected
 I4936_published,OlaldeNature2018,Italy_Sicily_BellBeaker_published_lc,2200,-250,2500-1900 BCE [based on the Bell Beaker phase in Sicily; using the date range estimate justified in the supplemental materials of Olalde et al. Nature 555; 190-6 (2018); pages 28-29],-2500,-1900,-2200
 I6547,NarasimhanPattersonScience2019,Pakistan_IA_Barikot,200,1750,200 BCE - 100 CE,-200,100,-50
 I12208,OlaldeScience2019,Iberia_LBA_Cogotas,3240,-1290,1368-1338 calBCE; 1322-1211 calBCE,-1368,-1338,-1353
